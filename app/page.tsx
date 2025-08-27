@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertCircle, Database } from "lucide-react"
 import type { Product } from "@/lib/types"
+export const dynamic = "force-dynamic";
+
 
 async function fetchProducts() {
   try {
