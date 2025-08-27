@@ -1,95 +1,44 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/server"
 import { ProductGrid } from "@/components/product-grid"
 import { Header } from "@/components/header"
 import { Hero } from "@/components/hero"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle, Database, Loader2 } from "lucide-react"
+import { AlertCircle, Database } from "lucide-react"
 import type { Product } from "@/lib/types"
 
-export default function HomePage() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
-  const [databaseError, setDatabaseError] = useState(false)
+async function fetchProducts() {
+  try {
+    console.log("[v0] Starting server-side product fetch...")
+    const supabase = await createClient()
 
-  useEffect(() => {
-    async function fetchProducts() {
-      const timeoutId = setTimeout(() => {
-        console.log("[v0] Fetch timeout - setting loading to false")
-        setLoading(false)
-        setDatabaseError(true)
-      }, 10000) // 10 second timeout
+    const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false })
 
-      try {
-        console.log("[v0] Starting product fetch...")
-        const supabase = createClient()
-
-        const { data: testData, error: testError } = await supabase
-          .from("products")
-          .select("count", { count: "exact", head: true })
-
-        if (testError) {
-          console.log("[v0] Connection test failed:", testError)
-          throw testError
-        }
-
-        console.log("[v0] Connection successful, fetching products...")
-        const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false })
-
-        clearTimeout(timeoutId) // Clear timeout on successful response
-
-        if (error) {
-          console.error("Error fetching products:", error)
-          if (error.message.includes("does not exist") || error.message.includes("schema cache")) {
-            setDatabaseError(true)
-          }
-        } else {
-          console.log("[v0] Products fetched successfully:", data?.length || 0)
-          setProducts(data as Product[])
-        }
-      } catch (error) {
-        console.error("Database connection error:", error)
-        clearTimeout(timeoutId) // Clear timeout on error
-        setDatabaseError(true)
-      } finally {
-        console.log("[v0] Setting loading to false")
-        setLoading(false)
+    if (error) {
+      console.error("Error fetching products:", error)
+      if (error.message.includes("does not exist") || error.message.includes("schema cache")) {
+        return { products: [], databaseError: true }
       }
+      throw error
     }
 
-    fetchProducts()
-  }, [])
-
-  const retryFetch = () => {
-    setLoading(true)
-    setDatabaseError(false)
-    setProducts([])
-
-    // Trigger re-fetch by updating a dependency
-    setTimeout(() => {
-      window.location.reload()
-    }, 100)
+    console.log("[v0] Products fetched successfully:", data?.length || 0)
+    return { products: data as Product[], databaseError: false }
+  } catch (error) {
+    console.error("Database connection error:", error)
+    return { products: [], databaseError: true }
   }
+}
+
+export default async function HomePage() {
+  const { products, databaseError } = await fetchProducts()
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <Hero />
       <main className="container mx-auto px-4 py-8">
-        {loading ? (
-          <section className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-yellow-500" />
-              <p className="text-muted-foreground">Loading products...</p>
-              <p className="text-xs text-muted-foreground mt-2">
-                If this takes too long, there might be a connection issue
-              </p>
-            </div>
-          </section>
-        ) : databaseError ? (
+        {databaseError ? (
           <section className="max-w-2xl mx-auto">
             <Card className="border-yellow-200 bg-yellow-50">
               <CardHeader className="text-center">
@@ -124,19 +73,11 @@ export default function HomePage() {
                   </ol>
                 </div>
                 <div className="text-center space-x-2">
-                  <Button
-                    onClick={() => window.location.reload()}
-                    className="bg-yellow-500 hover:bg-yellow-600 text-black"
-                  >
-                    Refresh Page
-                  </Button>
-                  <Button
-                    onClick={retryFetch}
-                    variant="outline"
-                    className="border-yellow-300 text-yellow-700 hover:bg-yellow-50 bg-transparent"
-                  >
-                    Try Again
-                  </Button>
+                  <form action={() => window.location.reload()}>
+                    <Button type="submit" className="bg-yellow-500 hover:bg-yellow-600 text-black">
+                      Refresh Page
+                    </Button>
+                  </form>
                 </div>
               </CardContent>
             </Card>

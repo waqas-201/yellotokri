@@ -107,14 +107,26 @@ export function CartDrawer() {
                   <span className="text-[#FFD700]">${getTotalPrice().toFixed(2)}</span>
                 </div>
 
-                <Link href="/checkout" className="block">
-                  <Button
-                    className="w-full bg-[#FFD700] text-black hover:bg-[#FFD700]/90 text-lg py-6"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    Proceed to Checkout
-                  </Button>
-                </Link>
+                <div className="space-y-2">
+                  <Link href="/cart" className="block">
+                    <Button
+                      variant="outline"
+                      className="w-full bg-transparent border-[#FFD700] text-[#FFD700] hover:bg-[#FFD700] hover:text-black"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      View Cart
+                    </Button>
+                  </Link>
+
+                  <Link href="/checkout" className="block">
+                    <Button
+                      className="w-full bg-[#FFD700] text-black hover:bg-[#FFD700]/90 text-lg py-6"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      Proceed to Checkout
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </>
           )}

@@ -5,15 +5,16 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useCart } from "@/contexts/cart-context"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { checkoutSchema, type CheckoutFormData } from "@/lib/validations/checkout"
 import { OrderSummary } from "@/components/order-summary"
 import { useRouter } from "next/navigation"
-import { CreditCard, Smartphone, Building } from "lucide-react"
+import { Info } from "lucide-react"
+import Link from "next/link"
 
 export function CheckoutForm() {
   const { items, getTotalPrice, clearCart } = useCart()
@@ -30,18 +31,26 @@ export function CheckoutForm() {
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
       sameAsShipping: true,
-      paymentMethod: "card",
+      paymentMethod: "cod", // Default to Cash on Delivery
+      shippingMethod: "free", // Added shipping method
       shippingAddress: {
-        country: "United States",
+        country: "Pakistan", // Default to Pakistan
       },
       billingAddress: {
-        country: "United States",
+        country: "Pakistan",
       },
+      saveInfo: false, // Added save info option
+      emailOffers: false, // Added email offers option
     },
   })
 
   const sameAsShipping = watch("sameAsShipping")
   const paymentMethod = watch("paymentMethod")
+  const shippingMethod = watch("shippingMethod")
+
+  const subtotal = getTotalPrice()
+  const shippingCost = shippingMethod === "free" && subtotal >= 10000 ? 0 : shippingMethod === "standard" ? 249 : 0
+  const total = subtotal + shippingCost
 
   const onSubmit = async (data: CheckoutFormData) => {
     if (items.length === 0) {
@@ -53,10 +62,10 @@ export function CheckoutForm() {
 
     try {
       const orderData = {
-        customer_name: data.customerName,
+        customer_name: `${data.firstName} ${data.lastName}`, // Combine first and last name
         customer_email: data.customerEmail,
         customer_phone: data.customerPhone,
-        total_amount: getTotalPrice(),
+        total_amount: total, // Use calculated total with shipping
         items: items.map((item) => ({
           product_id: item.product.id,
           quantity: item.quantity,
@@ -65,6 +74,7 @@ export function CheckoutForm() {
         shipping_address: data.shippingAddress,
         billing_address: sameAsShipping ? data.shippingAddress : data.billingAddress,
         payment_method: data.paymentMethod,
+        shipping_method: data.shippingMethod, // Include shipping method
       }
 
       const response = await fetch("/api/orders", {
@@ -103,219 +113,178 @@ export function CheckoutForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-2 space-y-6">
-        {/* Customer Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Customer Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <div className="lg:col-span-2 space-y-8">
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Contact</h2>
+            <Link href="/login" className="text-blue-600 hover:underline text-sm">
+              Log in
+            </Link>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <Input placeholder="Email or mobile phone number" {...register("customerEmail")} className="w-full" />
+              {errors.customerEmail && <p className="text-sm text-destructive mt-1">{errors.customerEmail.message}</p>}
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox id="emailOffers" {...register("emailOffers")} />
+              <Label htmlFor="emailOffers" className="text-sm">
+                Email me with news and offers
+              </Label>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Delivery</h2>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="country">Country/Region</Label>
+              <Select defaultValue="Pakistan">
+                <SelectTrigger>
+                  <SelectValue placeholder="Select country" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Pakistan">Pakistan</SelectItem>
+                  <SelectItem value="India">India</SelectItem>
+                  <SelectItem value="Bangladesh">Bangladesh</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="customerName">Full Name</Label>
-                <Input id="customerName" {...register("customerName")} />
-                {errors.customerName && <p className="text-sm text-destructive">{errors.customerName.message}</p>}
+                <Input placeholder="First name (optional)" {...register("firstName")} />
+                {errors.firstName && <p className="text-sm text-destructive mt-1">{errors.firstName.message}</p>}
               </div>
               <div>
-                <Label htmlFor="customerPhone">Phone Number</Label>
-                <Input id="customerPhone" type="tel" {...register("customerPhone")} />
-                {errors.customerPhone && <p className="text-sm text-destructive">{errors.customerPhone.message}</p>}
+                <Input placeholder="Last name" {...register("lastName")} />
+                {errors.lastName && <p className="text-sm text-destructive mt-1">{errors.lastName.message}</p>}
               </div>
             </div>
-            <div>
-              <Label htmlFor="customerEmail">Email Address</Label>
-              <Input id="customerEmail" type="email" {...register("customerEmail")} />
-              {errors.customerEmail && <p className="text-sm text-destructive">{errors.customerEmail.message}</p>}
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Shipping Address */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Shipping Address</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="shippingStreet">Street Address</Label>
-              <Input id="shippingStreet" {...register("shippingAddress.street")} />
+              <Input placeholder="Address" {...register("shippingAddress.street")} />
               {errors.shippingAddress?.street && (
-                <p className="text-sm text-destructive">{errors.shippingAddress.street.message}</p>
+                <p className="text-sm text-destructive mt-1">{errors.shippingAddress.street.message}</p>
               )}
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+            <div>
+              <Input placeholder="Apartment, suite, etc. (optional)" {...register("shippingAddress.apartment")} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="shippingCity">City</Label>
-                <Input id="shippingCity" {...register("shippingAddress.city")} />
+                <Input placeholder="City" {...register("shippingAddress.city")} />
                 {errors.shippingAddress?.city && (
-                  <p className="text-sm text-destructive">{errors.shippingAddress.city.message}</p>
+                  <p className="text-sm text-destructive mt-1">{errors.shippingAddress.city.message}</p>
                 )}
               </div>
               <div>
-                <Label htmlFor="shippingState">State</Label>
-                <Input id="shippingState" {...register("shippingAddress.state")} />
-                {errors.shippingAddress?.state && (
-                  <p className="text-sm text-destructive">{errors.shippingAddress.state.message}</p>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="shippingZip">ZIP Code</Label>
-                <Input id="shippingZip" {...register("shippingAddress.zipCode")} />
-                {errors.shippingAddress?.zipCode && (
-                  <p className="text-sm text-destructive">{errors.shippingAddress.zipCode.message}</p>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="shippingCountry">Country</Label>
-                <Input id="shippingCountry" {...register("shippingAddress.country")} />
-                {errors.shippingAddress?.country && (
-                  <p className="text-sm text-destructive">{errors.shippingAddress.country.message}</p>
-                )}
+                <Input placeholder="Postal code (optional)" {...register("shippingAddress.zipCode")} />
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Billing Address */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Billing Address</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            <div className="relative">
+              <Input placeholder="Phone" {...register("customerPhone")} className="pr-8" />
+              <Info className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              {errors.customerPhone && <p className="text-sm text-destructive mt-1">{errors.customerPhone.message}</p>}
+            </div>
+
             <div className="flex items-center space-x-2">
-              <Checkbox
-                id="sameAsShipping"
-                checked={sameAsShipping}
-                onCheckedChange={(checked) => setValue("sameAsShipping", checked as boolean)}
-              />
-              <Label htmlFor="sameAsShipping">Same as shipping address</Label>
+              <Checkbox id="saveInfo" {...register("saveInfo")} />
+              <Label htmlFor="saveInfo" className="text-sm">
+                Save this information for next time
+              </Label>
             </div>
+          </div>
+        </div>
 
-            {!sameAsShipping && (
-              <>
-                <div>
-                  <Label htmlFor="billingStreet">Street Address</Label>
-                  <Input id="billingStreet" {...register("billingAddress.street")} />
-                  {errors.billingAddress?.street && (
-                    <p className="text-sm text-destructive">{errors.billingAddress.street.message}</p>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <Label htmlFor="billingCity">City</Label>
-                    <Input id="billingCity" {...register("billingAddress.city")} />
-                    {errors.billingAddress?.city && (
-                      <p className="text-sm text-destructive">{errors.billingAddress.city.message}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="billingState">State</Label>
-                    <Input id="billingState" {...register("billingAddress.state")} />
-                    {errors.billingAddress?.state && (
-                      <p className="text-sm text-destructive">{errors.billingAddress.state.message}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="billingZip">ZIP Code</Label>
-                    <Input id="billingZip" {...register("billingAddress.zipCode")} />
-                    {errors.billingAddress?.zipCode && (
-                      <p className="text-sm text-destructive">{errors.billingAddress.zipCode.message}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="billingCountry">Country</Label>
-                    <Input id="billingCountry" {...register("billingAddress.country")} />
-                    {errors.billingAddress?.country && (
-                      <p className="text-sm text-destructive">{errors.billingAddress.country.message}</p>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Shipping method</h2>
+          <RadioGroup
+            value={shippingMethod}
+            onValueChange={(value) => setValue("shippingMethod", value)}
+            className="space-y-3"
+          >
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center space-x-3">
+                <RadioGroupItem value="free" id="free" />
+                <Label htmlFor="free">Free Shipping Above Rs. 10,000/-</Label>
+              </div>
+              <span className="font-semibold">FREE</span>
+            </div>
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center space-x-3">
+                <RadioGroupItem value="standard" id="standard" />
+                <Label htmlFor="standard">Standard Delivery</Label>
+              </div>
+              <div className="text-right">
+                <span className="text-sm text-gray-500 line-through">Rs.249.00</span>
+                <span className="font-semibold ml-2">FREE</span>
+              </div>
+            </div>
+          </RadioGroup>
+        </div>
 
-        {/* Payment Method */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment Method</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <RadioGroup
-              value={paymentMethod}
-              onValueChange={(value) => setValue("paymentMethod", value as "card" | "paypal" | "bank")}
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="card" id="card" />
-                <Label htmlFor="card" className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  Credit/Debit Card
+        <div>
+          <h2 className="text-xl font-semibold mb-2">Payment</h2>
+          <p className="text-sm text-gray-600 mb-4">All transactions are secure and encrypted.</p>
+          <RadioGroup
+            value={paymentMethod}
+            onValueChange={(value) => setValue("paymentMethod", value)}
+            className="space-y-3"
+          >
+            <div className="border rounded-lg">
+              <div className="flex items-center space-x-3 p-4 bg-blue-50 rounded-t-lg">
+                <RadioGroupItem value="cod" id="cod" />
+                <Label htmlFor="cod" className="font-medium">
+                  Cash on Delivery (COD)
                 </Label>
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="paypal" id="paypal" />
-                <Label htmlFor="paypal" className="flex items-center gap-2">
-                  <Smartphone className="h-4 w-4" />
-                  PayPal
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="bank" id="bank" />
-                <Label htmlFor="bank" className="flex items-center gap-2">
-                  <Building className="h-4 w-4" />
-                  Bank Transfer
-                </Label>
-              </div>
-            </RadioGroup>
+            </div>
+            <div className="flex items-center space-x-3 p-4 border rounded-lg">
+              <RadioGroupItem value="bank" id="bank" />
+              <Label htmlFor="bank">Bank Deposit</Label>
+            </div>
+            <div className="flex items-center space-x-3 p-4 border rounded-lg">
+              <RadioGroupItem value="easypaisa" id="easypaisa" />
+              <Label htmlFor="easypaisa">Easypaisa</Label>
+            </div>
+          </RadioGroup>
+        </div>
 
-            {paymentMethod === "card" && (
-              <div className="space-y-4 pt-4 border-t">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <Label htmlFor="cardholderName">Cardholder Name</Label>
-                    <Input id="cardholderName" {...register("cardDetails.cardholderName")} />
-                    {errors.cardDetails?.cardholderName && (
-                      <p className="text-sm text-destructive">{errors.cardDetails.cardholderName.message}</p>
-                    )}
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label htmlFor="cardNumber">Card Number</Label>
-                    <Input id="cardNumber" placeholder="1234 5678 9012 3456" {...register("cardDetails.cardNumber")} />
-                    {errors.cardDetails?.cardNumber && (
-                      <p className="text-sm text-destructive">{errors.cardDetails.cardNumber.message}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="expiryDate">Expiry Date</Label>
-                    <Input id="expiryDate" placeholder="MM/YY" {...register("cardDetails.expiryDate")} />
-                    {errors.cardDetails?.expiryDate && (
-                      <p className="text-sm text-destructive">{errors.cardDetails.expiryDate.message}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="cvv">CVV</Label>
-                    <Input id="cvv" placeholder="123" {...register("cardDetails.cvv")} />
-                    {errors.cardDetails?.cvv && (
-                      <p className="text-sm text-destructive">{errors.cardDetails.cvv.message}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Billing address</h2>
+          <RadioGroup
+            value={sameAsShipping ? "same" : "different"}
+            onValueChange={(value) => setValue("sameAsShipping", value === "same")}
+            className="space-y-3"
+          >
+            <div className="flex items-center space-x-3 p-4 border rounded-lg bg-blue-50">
+              <RadioGroupItem value="same" id="same" />
+              <Label htmlFor="same">Same as shipping address</Label>
+            </div>
+            <div className="flex items-center space-x-3 p-4 border rounded-lg">
+              <RadioGroupItem value="different" id="different" />
+              <Label htmlFor="different">Use a different billing address</Label>
+            </div>
+          </RadioGroup>
+        </div>
 
-      <div className="space-y-6">
-        <OrderSummary />
         <Button
           type="submit"
           size="lg"
-          className="w-full bg-[#FFD700] text-black hover:bg-[#FFD700]/90 text-lg py-6"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-lg py-6 rounded-lg"
           disabled={isSubmitting}
         >
-          {isSubmitting ? "Processing..." : "Complete Order"}
+          {isSubmitting ? "Processing..." : "Complete order"}
         </Button>
+      </div>
+
+      <div className="space-y-6">
+        <OrderSummary showShipping={true} shippingCost={shippingCost} />
       </div>
     </form>
   )

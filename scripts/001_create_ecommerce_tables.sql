@@ -4,9 +4,11 @@ CREATE TABLE IF NOT EXISTS products (
   name TEXT NOT NULL,
   description TEXT,
   price DECIMAL(10,2) NOT NULL,
+  original_price DECIMAL(10,2),
   image_url TEXT,
   category TEXT,
-  stock INTEGER DEFAULT 0,
+  stock_quantity INTEGER DEFAULT 0,
+  is_featured BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -32,10 +34,14 @@ CREATE TABLE IF NOT EXISTS order_items (
 );
 
 -- Insert sample products for testing
-INSERT INTO products (name, description, price, image_url, category, stock) VALUES
-('Happy Mug', 'Start your day with a smile! Bright yellow ceramic mug perfect for coffee or tea.', 24.99, '/placeholder.svg?height=400&width=400', 'Home & Kitchen', 50),
-('Sunshine T-Shirt', 'Comfortable cotton t-shirt featuring the YELLOWTOKRI smiley design.', 29.99, '/placeholder.svg?height=400&width=400', 'Clothing', 100),
-('Cheerful Notebook', 'Premium notebook with yellow cover and smiley design. Perfect for journaling or notes.', 19.99, '/placeholder.svg?height=400&width=400', 'Stationery', 75),
-('Smile Stickers Pack', 'Pack of 50 waterproof stickers featuring various smiley designs.', 12.99, '/placeholder.svg?height=400&width=400', 'Accessories', 200),
-('Happy Tote Bag', 'Eco-friendly canvas tote bag with YELLOWTOKRI branding.', 34.99, '/placeholder.svg?height=400&width=400', 'Bags', 80),
-('Sunshine Phone Case', 'Protective phone case with cheerful yellow design.', 22.99, '/placeholder.svg?height=400&width=400', 'Tech', 120);
+INSERT INTO products (name, description, price, original_price, image_url, category, stock_quantity, is_featured) VALUES
+('Foldable Mini Cycle Arm And Leg Exercises with digital meter', 'Compact exercise equipment perfect for home workouts. Features digital meter to track your progress.', 7985.00, 10500.00, '/placeholder.svg?height=400&width=400', 'Sports & Fitness', 15, true),
+('Portable Electric Blender Bottle (LED Display) USB Rechargeable', 'Convenient portable blender with LED display and USB charging capability.', 3795.00, 5500.00, '/placeholder.svg?height=400&width=400', 'Home & Kitchen', 25, true),
+('EG6 Two-Way Reversible Stroller, High View Foldable Pram', 'Premium baby stroller with reversible seat and high viewing position.', 17685.00, 25500.00, '/placeholder.svg?height=400&width=400', 'Baby & Kids', 8, true),
+('Portable Mini Retractable Silicone Juicer Cup Electric', 'Compact silicone juicer cup that retracts for easy storage and portability.', 2995.00, 4500.00, '/placeholder.svg?height=400&width=400', 'Home & Kitchen', 30, false),
+('LED Desktop Fish tank Fantasy Fish Lamp', 'Decorative LED fish tank lamp perfect for desktop decoration.', 2695.00, 6500.00, '/placeholder.svg?height=400&width=400', 'Electronics', 12, false),
+('Quencher H2.0 Tumbler 30oz – Stainless Steel', 'Premium stainless steel tumbler with leak-proof design and insulation.', 6795.00, 8500.00, '/placeholder.svg?height=400&width=400', 'Home & Kitchen', 20, false),
+('Science Park Water Tornado Demonstrator Teaching Instrument', 'Educational water tornado demonstrator for science learning.', 2395.00, 4500.00, '/placeholder.svg?height=400&width=400', 'Electronics', 18, false),
+('Night Light Laser Ambiance Lamp Bluetooth Speaker', 'Multi-function device combining night light, laser projector, and Bluetooth speaker.', 2755.00, 7500.00, '/placeholder.svg?height=400&width=400', 'Electronics', 22, true),
+('2-in-1 Foldable Sitting and Rocking Children''s Dining', 'Versatile children''s dining chair that converts between sitting and rocking modes.', 21450.00, 30500.00, '/placeholder.svg?height=400&width=400', 'Baby & Kids', 10, false),
+('Luxury Bath Gift Set for Women – Spa Accessories with Towel', 'Complete spa gift set with premium bath accessories and soft towel.', 3295.00, 5500.00, '/placeholder.svg?height=400&width=400', 'Home & Kitchen', 35, false);
